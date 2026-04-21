@@ -1,40 +1,43 @@
-const orders=[
-    {
-    id:"001",
-    name:"Nguyen Van A",
-    status:"hủy",
-    totalAmount:20000,
-    },
-    {
-    id:"002",
-    name:"Nguyen Thi B",
-    status:"hủy",
-    totalAmount:100000,
-    },
-    {
-    id:"003",
-    name:"Nguyen Huu Nhat",
-    status:"đang giao",
-    totalAmount:2000000
-    },
-]
-function getDataBaseInfo(){
-   return new Promise((resolve,reject)=>{
-    setTimeout(()=>{resolve(orders);},2000)
-   });
+const sql= require('mssql/msnodesqlv8');
+const config={
+    server:'localhost',
+    database:'QL_Logistic',
+    driver:'SQL Server',
+    option:{
+        trustedConnection:true,
+        trustServerCertificate:true
+    }
+};
+async function getDataBaseInfo(){
+    try{
+        let pool=await sql.connect(config);
+        console.log("Liên kết SQL thành công");
+        let result = await pool.request().query('SELECT*FROM KhachHang');
+        let result1=await pool.request().query('SELECT*FROM HOADON')
+         return{
+            khachhang:result.recordset,
+            hoadon:result1.recordset
+        };
+    }catch(error){
+        console.log("Liên kết thất bại.Lỗi cụ thể:",error.message);
+        return{khachhang:[],hoadon:[]}
 }
+
 async function procesOrders() {
     console.log("Đang gửi yêu cầu lấy đơn hàng")
     const data = await getDataBaseInfo()
-    const donHangDaHuy=data.filter(item=>item.status==="hủy")
+    const donHangDaHuy=data.hoadon.filter(item=>item.TrangThai==="hủy")
     const donHangDuocBoiThuong = donHangDaHuy.map(item=>{
         return{
             ...item,
-            boithuong:item.totalAmount*0.5,
-            phiship:item.totalAmount*0.1
+            boithuong:item.TongTien*0.5,
+            phiship:item.TongTien*0.1
         };
     });
-    console.log(donHangDaHuy);
+    data.khachhang.forEach(khach => {
+        console.log(`Tên khách hàng: ${khach.TenKH}|Email: ${khach.Email}`)
+    });
     console.log(donHangDuocBoiThuong);
 }
 procesOrders()
+}
